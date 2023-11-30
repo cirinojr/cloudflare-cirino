@@ -34,7 +34,7 @@ class SkallarCF
   {
 
     echo "<script>
-    console.log('funfou');
+   
         const addUTMandTimestamp = () => {
           const links = document.querySelectorAll('a');
 
