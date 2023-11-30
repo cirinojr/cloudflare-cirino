@@ -26,14 +26,31 @@ class SkallarCF
     add_action('admin_menu', [$this, 'skallar_cf_submenu']);
 
     add_action('admin_init', [$this, 'sk_cf_settings_init']);
-    add_action('wp_enqueue_scripts', [$this, 'admin_script']);
+    add_action('admin_head', [$this, 'admin_script']);
   }
 
 
   public function admin_script()
   {
 
-    wp_enqueue_script('cfk-script', plugins_url('js/utms.js', __FILE__), array('jquery'), null, true);
+    echo "<script>
+    console.log('funfou');
+        const addUTMandTimestamp = () => {
+          const links = document.querySelectorAll('a');
+
+          links.forEach((link) => {
+            const originalHref = link.getAttribute('href');
+            const utmAddedHref = originalHref + (originalHref.includes('?') ? '&' : '?') + 'cfk=' +  new Date().getTime();;
+            const timestampAddedHref = utmAddedHref;
+            link.setAttribute('href', timestampAddedHref);
+          });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+          
+          addUTMandTimestamp();
+        });
+      </script>";
   }
 
 
