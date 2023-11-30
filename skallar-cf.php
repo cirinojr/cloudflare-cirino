@@ -20,13 +20,22 @@ class SkallarCF
 
     //hook que dispara quando é editado/salvo
     add_action('save_post', [$this, 'cloudflare_purge_all']);
-    add_action('added_option', [$this, 'cloudflare_purge_all'],10,2);
-    add_action('update_option', [$this, 'cloudflare_purge_all'],10,2);
+    add_action('added_option', [$this, 'cloudflare_purge_all'], 10, 2);
+    add_action('update_option', [$this, 'cloudflare_purge_all'], 10, 2);
     //adcionando página de configuração em ferramentas
     add_action('admin_menu', [$this, 'skallar_cf_submenu']);
 
     add_action('admin_init', [$this, 'sk_cf_settings_init']);
+    add_action('wp_enqueue_scripts', [$this, 'admin_script']);
   }
+
+
+  public function admin_script()
+  {
+
+    wp_enqueue_script('cfk-script', plugins_url('js/utms.js', __FILE__), array('jquery'), null, true);
+  }
+
 
 
 
