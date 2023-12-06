@@ -33,24 +33,9 @@ class SkallarCF
   public function admin_script()
   {
 
-    echo "<script>
-   
-        const addUTMandTimestamp = () => {
-          const links = document.querySelectorAll('a');
-
-          links.forEach((link) => {
-            const originalHref = link.getAttribute('href');
-            const utmAddedHref = originalHref + (originalHref.includes('?') ? '&' : '?') + 'cfk=' +  new Date().getTime();;
-            const timestampAddedHref = utmAddedHref;
-            link.setAttribute('href', timestampAddedHref);
-          });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-          
-          addUTMandTimestamp();
-        });
-      </script>";
+    echo '<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />';
   }
 
 
