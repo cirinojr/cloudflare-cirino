@@ -1,4 +1,4 @@
-# Cloudflare Skallar
+# Cloudflare Cirino
 
 Plugin de limpeza automatizada de cache de borda do cloudflare.
 
@@ -9,7 +9,7 @@ O plugin utiliza um hook de savepost e toda vez que um conteúdo é salvo ou atu
 
 ## Como usar?
 
-Após ativar o plugin vá em Ferramentas> Skallar Cloudflare e adicione o Zone ID do domínio e salvar
+Após ativar o plugin vá em Ferramentas> Cirino Cloudflare e adicione o Zone ID do domínio e salvar
 
 
 
