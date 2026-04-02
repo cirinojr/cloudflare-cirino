@@ -11,19 +11,22 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Automatic Cloudflare cache purge for WordPress content lifecycle events with targeted and full-zone strategies.
 
 == Description ==
-Cloudflare Cirino keeps your Cloudflare edge cache aligned with WordPress content changes.
+Cloudflare Cirino keeps Cloudflare edge cache aligned with WordPress content changes.
 
-When public content changes, the plugin runs the configured purge strategy:
+When public content changes, the plugin runs one of two purge strategies:
 
-- Targeted mode: purges the content permalink and related URLs such as home, relevant archives, and taxonomy pages.
-- Purge everything mode: clears the entire zone cache.
+* Targeted mode purges the post permalink plus related public URLs (home, archive pages, taxonomy terms).
+* Purge Everything mode clears the full Cloudflare zone cache.
 
-The plugin includes a native WordPress admin screen with:
-- Connection status and last result visibility
-- API Token-first authentication
-- Legacy Email + Global API Key fallback (optional)
-- Manual Test Connection and Purge Now controls
-- Recent activity panel
+The plugin provides a native wp-admin screen under Tools with:
+
+* Connection status and last operation signals
+* API Token authentication (recommended)
+* Legacy Email + Global API Key mode for compatibility
+* Manual Test Connection and Purge Now actions
+* Recent activity log for quick troubleshooting
+
+Internally, the plugin uses WordPress HTTP API and option APIs only.
 
 == Installation ==
 1. Upload the plugin folder to `/wp-content/plugins/`.
@@ -37,6 +40,13 @@ The plugin includes a native WordPress admin screen with:
 2. Choose authentication mode.
 3. Choose purge mode.
 4. Save settings.
+5. Run **Test Connection**.
+
+== Screenshots ==
+1. Settings overview
+2. Connection test status
+3. Recent activity log
+4. Targeted vs Purge Everything mode
 
 == Frequently Asked Questions ==
 = Which authentication method should I use? =
@@ -54,15 +64,17 @@ It purges home URL and relevant public archive URLs using the currently selected
 = Are credentials shown in admin after saving? =
 Token and legacy key fields are rendered empty on subsequent loads. Leaving them blank keeps the existing saved values.
 
+= Does this plugin skip autosaves and revisions? =
+Yes. Autosaves, revisions, and non-public statuses are ignored to avoid unnecessary purge traffic.
+
 == Changelog ==
 
 = 1.0.1 =
 * Fixed activity log ordering.
-* Fixed attachment filtering in supported post types.
-* Skips delete-trigger purge when the deleted post is not public.
-* Consolidated targeted purge request logic.
-* Added uninstall cleanup for transient admin notice.
-* Refined admin UI styling for clearer WordPress-native presentation.
+* Improved supported post type filtering.
+* Skips purge on non-public permanent deletes.
+* Improved settings validation and admin UX clarity.
+* Updated documentation for public repository usage.
 
 = 1.0.0 =
 * Initial public release.

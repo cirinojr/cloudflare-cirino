@@ -81,7 +81,8 @@ class Settings {
 		$token = isset( $input['api_token'] ) ? trim( sanitize_text_field( (string) $input['api_token'] ) ) : '';
 		$clean['api_token'] = '' !== $token ? $token : (string) $current['api_token'];
 
-		$legacy_email = isset( $input['legacy_email'] ) ? sanitize_email( (string) $input['legacy_email'] ) : '';
+		$legacy_email_raw = isset( $input['legacy_email'] ) ? (string) $input['legacy_email'] : '';
+		$legacy_email     = sanitize_email( $legacy_email_raw );
 		$legacy_key   = isset( $input['legacy_api_key'] ) ? trim( sanitize_text_field( (string) $input['legacy_api_key'] ) ) : '';
 
 		$clean['legacy_email']   = '' !== $legacy_email ? $legacy_email : (string) $current['legacy_email'];
@@ -103,7 +104,7 @@ class Settings {
 			add_settings_error( 'cloudflare_cirino', 'cloudflare_cirino_legacy', __( 'Legacy mode requires both email and global API key.', 'cloudflare-cirino' ) );
 		}
 
-		if ( '' !== $legacy_email && ! is_email( $legacy_email ) ) {
+		if ( '' !== trim( $legacy_email_raw ) && '' === $legacy_email ) {
 			add_settings_error( 'cloudflare_cirino', 'cloudflare_cirino_email', __( 'Legacy email format is invalid.', 'cloudflare-cirino' ) );
 		}
 

@@ -5,6 +5,7 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -20,4 +21,6 @@ jobs:
 
       - name: Lint plugin PHP files
         run: |
-          find . -type f -name "*.php" -not -path "*/vendor/*" -print0 | xargs -0 -n1 php -l
+          find . -type f -name "*.php" -not -path "*/vendor/*" -print0 | while IFS= read -r -d '' file; do
+            php -l "$file"
+          done
