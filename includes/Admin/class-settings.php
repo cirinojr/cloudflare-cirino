@@ -92,6 +92,24 @@ class Settings {
 			? $input['purge_mode']
 			: 'targeted';
 
+		$clean['cache_rules_enabled'] = ( isset( $input['cache_rules_enabled'] ) && 'yes' === $input['cache_rules_enabled'] )
+			? 'yes'
+			: (string) $current['cache_rules_enabled'];
+
+		$clean['cache_rules_preset'] = ( isset( $input['cache_rules_preset'] ) && in_array( $input['cache_rules_preset'], array( 'safe', 'recommended', 'aggressive' ), true ) )
+			? $input['cache_rules_preset']
+			: 'recommended';
+
+		$raw_hostname                  = isset( $input['cache_rules_hostname'] ) ? (string) $input['cache_rules_hostname'] : '';
+		$sanitized_hostname            = $this->sanitize_hostname( $raw_hostname );
+		$clean['cache_rules_hostname'] = '' !== $sanitized_hostname ? $sanitized_hostname : $this->options->get_default_cache_rules_hostname();
+
+		if ( '' !== trim( $raw_hostname ) && '' === $sanitized_hostname ) {
+			add_settings_error( 'cloudflare_cirino', 'cloudflare_cirino_cache_rules_hostname', __( 'Cache rules hostname must be a hostname only, without scheme or path.', 'cloudflare-cirino' ) );
+		}
+
+		$clean['cache_rules_edge_ttl'] = $this->preset_to_ttl( $clean['cache_rules_preset'] );
+
 		if ( '' === $clean['zone_id'] ) {
 			add_settings_error( 'cloudflare_cirino', 'cloudflare_cirino_zone_id', __( 'Zone ID is required.', 'cloudflare-cirino' ) );
 		}
@@ -109,5 +127,53 @@ class Settings {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Sanitize a hostname value.
+	 *
+	 * @param string $value Raw hostname input.
+	 * @return string
+	 */
+	private function sanitize_hostname( string $value ): string {
+		$value = sanitize_text_field( wp_unslash( $value ) );
+		$value = trim( strtolower( $value ) );
+
+		if ( '' === $value ) {
+			return '';
+		}
+
+		if ( false !== strpos( $value, '://' ) ) {
+			$parsed = wp_parse_url( $value, PHP_URL_HOST );
+			$value  = is_string( $parsed ) ? $parsed : '';
+		} else {
+			$value = preg_replace( '/[\/?#].*$/', '', $value );
+		}
+
+		$value = (string) preg_replace( '/:\d+$/', '', (string) $value );
+		$value = (string) preg_replace( '/[^a-z0-9.-]/', '', (string) $value );
+		$value = trim( $value, ". \t\n\r\0\x0B" );
+
+		return $value;
+	}
+
+	/**
+	 * Map preset values to supported edge TTLs.
+	 *
+	 * @param string $preset Cache rules preset.
+	 * @return int
+	 */
+	private function preset_to_ttl( string $preset ): int {
+		switch ( $preset ) {
+			case 'safe':
+				return 7200;
+
+			case 'aggressive':
+				return 86400;
+
+			case 'recommended':
+			default:
+				return 14400;
+		}
 	}
 }

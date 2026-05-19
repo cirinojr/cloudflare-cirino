@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.0] - 2026-05-19
+
+### Added
+- Optional Cloudflare Cache Rules setup for WordPress full-page edge caching via the Rulesets API.
+- Managed rule application for the `http_request_cache_settings` phase using plugin-owned rule descriptions.
+- Cache rules hostname and preset settings, runtime status tracking, and admin activity logging.
+
+### Changed
+- Expanded the admin screen and documentation to cover opt-in cache rule management and required token permissions.
+
 ## [1.0.1] - 2026-04-02
 
 ### Changed

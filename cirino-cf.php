@@ -3,7 +3,7 @@
  * Plugin Name: Cloudflare Cirino
  * Plugin URI: https://github.com/cirinojr/cloudflare-cirino
  * Description: Automatically purges Cloudflare cache when public WordPress content changes.
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: Claudio Cirino Jr
  * Author URI: https://github.com/cirinojr
  * License: GPL-2.0-or-later
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CLOUDFLARE_CIRINO_VERSION', '1.0.1' );
+define( 'CLOUDFLARE_CIRINO_VERSION', '1.1.0' );
 define( 'CLOUDFLARE_CIRINO_FILE', __FILE__ );
 define( 'CLOUDFLARE_CIRINO_BASENAME', plugin_basename( __FILE__ ) );
 define( 'CLOUDFLARE_CIRINO_PATH', plugin_dir_path( __FILE__ ) );

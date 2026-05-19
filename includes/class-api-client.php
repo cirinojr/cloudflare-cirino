@@ -20,6 +20,21 @@ class API_Client {
 	private const API_BASE = 'https://api.cloudflare.com/client/v4';
 
 	/**
+	 * Cache rules phase name.
+	 */
+	private const CACHE_RULES_PHASE = 'http_request_cache_settings';
+
+	/**
+	 * Zone cache ruleset name.
+	 */
+	private const CACHE_RULESET_NAME = 'Cloudflare Cirino Cache Rules';
+
+	/**
+	 * Zone cache ruleset description.
+	 */
+	private const CACHE_RULESET_DESCRIPTION = 'Managed by Cloudflare Cirino';
+
+	/**
 	 * Options repository.
 	 *
 	 * @var Options
@@ -41,8 +56,7 @@ class API_Client {
 	 * @return array<string,mixed>
 	 */
 	public function test_connection(): array {
-		$settings = $this->options->get_settings();
-		$zone_id  = (string) $settings['zone_id'];
+		$zone_id = $this->get_zone_id();
 
 		if ( '' === $zone_id ) {
 			return $this->result( false, __( 'Zone ID is required.', 'cloudflare-cirino' ) );
@@ -91,6 +105,7 @@ class API_Client {
 
 		/* translators: %d: Number of URLs. */
 		$message = sprintf( __( 'Cloudflare cache purged for %d URL(s).', 'cloudflare-cirino' ), count( $urls ) );
+
 		return $this->result( true, $message, array( 'urls' => $urls ) );
 	}
 
@@ -101,14 +116,111 @@ class API_Client {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	public function purge_payload( array $payload ) {
-
-		$response = $this->request(
+		return $this->request(
 			'POST',
-			'/zones/' . rawurlencode( (string) $this->options->get_settings()['zone_id'] ) . '/purge_cache',
+			'/zones/' . rawurlencode( $this->get_zone_id() ) . '/purge_cache',
 			$payload
 		);
+	}
 
-		return $response;
+	/**
+	 * List all rulesets for the configured zone.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public function list_zone_rulesets(): array {
+		$response = $this->request( 'GET', '/zones/' . rawurlencode( $this->get_zone_id() ) . '/rulesets' );
+
+		return $this->normalize_api_response( $response );
+	}
+
+	/**
+	 * Create the cache rules phase entry point ruleset.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public function create_zone_cache_ruleset(): array {
+		$response = $this->request(
+			'POST',
+			'/zones/' . rawurlencode( $this->get_zone_id() ) . '/rulesets',
+			array(
+				'kind'        => 'zone',
+				'phase'       => self::CACHE_RULES_PHASE,
+				'name'        => self::CACHE_RULESET_NAME,
+				'description' => self::CACHE_RULESET_DESCRIPTION,
+			)
+		);
+
+		return $this->normalize_api_response( $response );
+	}
+
+	/**
+	 * Add a rule to an existing ruleset.
+	 *
+	 * @param string              $ruleset_id Ruleset ID.
+	 * @param array<string,mixed> $rule Rule payload.
+	 * @return array<string,mixed>
+	 */
+	public function add_ruleset_rule( string $ruleset_id, array $rule ): array {
+		$response = $this->request(
+			'POST',
+			'/zones/' . rawurlencode( $this->get_zone_id() ) . '/rulesets/' . rawurlencode( $ruleset_id ) . '/rules',
+			$rule
+		);
+
+		return $this->normalize_api_response( $response );
+	}
+
+	/**
+	 * Update a single rule in an existing ruleset.
+	 *
+	 * @param string              $ruleset_id Ruleset ID.
+	 * @param string              $rule_id Rule ID.
+	 * @param array<string,mixed> $rule Rule payload.
+	 * @return array<string,mixed>
+	 */
+	public function update_ruleset_rule( string $ruleset_id, string $rule_id, array $rule ): array {
+		$response = $this->request(
+			'PATCH',
+			'/zones/' . rawurlencode( $this->get_zone_id() ) . '/rulesets/' . rawurlencode( $ruleset_id ) . '/rules/' . rawurlencode( $rule_id ),
+			$rule
+		);
+
+		return $this->normalize_api_response( $response );
+	}
+
+	/**
+	 * Get the current zone cache ruleset.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public function get_cache_ruleset(): array {
+		$rulesets = $this->list_zone_rulesets();
+		if ( $this->is_failed_api_response( $rulesets ) ) {
+			return $rulesets;
+		}
+
+		$items      = isset( $rulesets['result'] ) && is_array( $rulesets['result'] ) ? $rulesets['result'] : array();
+		$ruleset_id = '';
+
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			if ( self::CACHE_RULES_PHASE === ( $item['phase'] ?? '' ) && 'zone' === ( $item['kind'] ?? '' ) ) {
+				$ruleset_id = isset( $item['id'] ) ? (string) $item['id'] : '';
+				break;
+			}
+		}
+
+		if ( '' === $ruleset_id ) {
+			return $this->api_error_response( __( 'The Cloudflare cache ruleset for this zone was not found.', 'cloudflare-cirino' ) );
+		}
+
+		$response = $this->request( 'GET', '/zones/' . rawurlencode( $this->get_zone_id() ) . '/rulesets/' . rawurlencode( $ruleset_id ) );
+
+		return $this->normalize_api_response( $response );
 	}
 
 	/**
@@ -121,7 +233,8 @@ class API_Client {
 	 */
 	private function request( string $method, string $path, ?array $body = null ) {
 		$settings = $this->options->get_settings();
-		$zone_id  = (string) $settings['zone_id'];
+		$zone_id  = $this->get_zone_id();
+
 		if ( '' === $zone_id ) {
 			return new \WP_Error( 'cloudflare_cirino_missing_zone', __( 'Zone ID is required before calling Cloudflare.', 'cloudflare-cirino' ) );
 		}
@@ -142,8 +255,7 @@ class API_Client {
 			$args['body'] = wp_json_encode( $body );
 		}
 
-		$url      = self::API_BASE . $path;
-		$response = wp_remote_request( $url, $args );
+		$response = wp_remote_request( self::API_BASE . $path, $args );
 		if ( is_wp_error( $response ) ) {
 			return new \WP_Error( 'cloudflare_cirino_http_error', $response->get_error_message() );
 		}
@@ -159,7 +271,14 @@ class API_Client {
 				$message = sanitize_text_field( (string) $decoded['errors'][0]['message'] );
 			}
 
-			return new \WP_Error( 'cloudflare_cirino_api_error', $message, array( 'status_code' => $status_code, 'body' => $decoded ) );
+			return new \WP_Error(
+				'cloudflare_cirino_api_error',
+				$message,
+				array(
+					'status_code' => $status_code,
+					'body'        => $decoded,
+				)
+			);
 		}
 
 		return $decoded;
@@ -188,6 +307,7 @@ class API_Client {
 
 			$headers['X-Auth-Email'] = $email;
 			$headers['X-Auth-Key']   = $api_key;
+
 			return $headers;
 		}
 
@@ -196,15 +316,16 @@ class API_Client {
 		}
 
 		$headers['Authorization'] = 'Bearer ' . $token;
+
 		return $headers;
 	}
 
 	/**
-	 * Standard result payload.
+	 * Build a standard result payload.
 	 *
-	 * @param bool                 $success Request success.
-	 * @param string               $message Message.
-	 * @param array<string,mixed>  $data Extra data.
+	 * @param bool                $success Request success.
+	 * @param string              $message Message.
+	 * @param array<string,mixed> $data Extra data.
 	 * @return array<string,mixed>
 	 */
 	private function result( bool $success, string $message, array $data = array() ): array {
@@ -213,5 +334,61 @@ class API_Client {
 			'message' => $message,
 			'data'    => $data,
 		);
+	}
+
+	/**
+	 * Get the configured zone ID.
+	 *
+	 * @return string
+	 */
+	private function get_zone_id(): string {
+		$settings = $this->options->get_settings();
+
+		return (string) $settings['zone_id'];
+	}
+
+	/**
+	 * Normalize a low-level response into an array payload.
+	 *
+	 * @param array<string,mixed>|\WP_Error $response Low-level response.
+	 * @return array<string,mixed>
+	 */
+	private function normalize_api_response( $response ): array {
+		if ( is_wp_error( $response ) ) {
+			return $this->api_error_response( $response->get_error_message(), $response->get_error_data() );
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Build a consistent API error payload.
+	 *
+	 * @param string $message Error message.
+	 * @param mixed  $data Optional error data.
+	 * @return array<string,mixed>
+	 */
+	private function api_error_response( string $message, $data = null ): array {
+		return array(
+			'success'  => false,
+			'result'   => array(),
+			'errors'   => array(
+				array(
+					'message' => $message,
+					'data'    => $data,
+				),
+			),
+			'messages' => array(),
+		);
+	}
+
+	/**
+	 * Check whether an API response represents a failure.
+	 *
+	 * @param array<string,mixed> $response Response payload.
+	 * @return bool
+	 */
+	private function is_failed_api_response( array $response ): bool {
+		return isset( $response['success'] ) && false === $response['success'];
 	}
 }

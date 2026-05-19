@@ -27,6 +27,7 @@ Without reliable invalidation, teams get inconsistent page states across devices
 - Automatic purge on relevant public post lifecycle changes.
 - Two purge strategies: targeted URLs or purge everything.
 - Manual admin actions for **Test Connection** and **Purge Now**.
+- Optional Cloudflare Cache Rules setup for WordPress full-page edge caching on Cloudflare Free/Pro.
 - Runtime status visibility (last test, last purge, message).
 - Bounded recent activity log in wp-admin.
 
@@ -36,7 +37,8 @@ The codebase is intentionally split by responsibility, not by artificial layers:
 
 - `includes/class-content-hooks.php`: converts WordPress events into purge intents.
 - `includes/class-purge-service.php`: decides strategy and executes purge flow.
-- `includes/class-api-client.php`: wraps Cloudflare API requests and auth headers.
+- `includes/class-api-client.php`: wraps Cloudflare API requests and authentication headers.
+- `includes/class-cache-rules-service.php`: builds and applies the plugin-managed Cloudflare Cache Rules.
 - `includes/class-options.php`: settings + runtime option access.
 - `includes/class-activity-log.php`: short, bounded event history.
 - `includes/Admin/class-settings.php`: settings registration and sanitization.
@@ -49,6 +51,7 @@ The codebase is intentionally split by responsibility, not by artificial layers:
 
 - Sends `Authorization: Bearer <token>`.
 - Requires zone-level cache purge permission.
+- The optional Cache Rules feature additionally needs Cloudflare Cache Rules / Rulesets edit permissions.
 
 ### Legacy Email + Global API Key
 
@@ -73,6 +76,54 @@ For manual purge, targeted mode clears a site-level set (home + public archives)
 ### Purge Everything
 
 Clears the full Cloudflare zone cache and is useful when broad template/global content changes invalidate most pages.
+
+## Optional Cache Rules setup
+
+The plugin can optionally apply two Cloudflare-managed Cache Rules for WordPress full-page edge caching using the Rulesets API.
+
+- This feature is opt-in and only runs when an administrator clicks **Apply Recommended Cache Rules**.
+- It creates or reuses the zone phase entry point ruleset for `http_request_cache_settings`.
+- It only creates or updates the two rules managed by this plugin and does not delete, overwrite, or reorder third-party rules.
+
+### Managed rules
+
+- `Cloudflare Cirino - WordPress Bypass`
+- `Cloudflare Cirino - WordPress Full Page Cache`
+
+The bypass rule is kept ahead of the full-page cache rule so dynamic WordPress requests remain ineligible for edge caching.
+
+### Presets
+
+- Safe: 2 hour edge TTL
+- Recommended: 4 hour edge TTL
+- Aggressive: 1 day edge TTL
+
+### Safety exclusions
+
+The generated rules exclude common dynamic WordPress and WooCommerce traffic, including:
+
+- logged-in users and password-protected content cookies
+- WordPress admin, login, comments posting, cron, XML-RPC, and REST API requests
+- preview and Elementor preview requests
+- WooCommerce cart, checkout, my-account, and session/cart cookies
+- non-`GET` / `HEAD` requests
+- obvious static asset extensions so the full-page rule stays focused on HTML-like page responses
+
+### Required token permissions
+
+For purge-only usage, keep the existing zone cache purge permission.
+
+For the Cache Rules button, Cloudflare documents additional permissions such as:
+
+- Zone > Cache Rules > Edit
+- Account Rulesets > Edit
+- Account Filter Lists > Edit
+
+If the token is missing the required ruleset permissions, the plugin surfaces a clear admin error instead of silently proceeding.
+
+### WooCommerce and membership sites
+
+This feature is conservative, but edge caching rules should still be tested carefully on WooCommerce, membership, LMS, or other cookie-heavy sites before broad rollout.
 
 ## Admin experience
 
@@ -128,6 +179,12 @@ Add screenshots to `assets/screenshots/` using these filenames:
 ## Changelog
 
 Full changelog lives in `CHANGELOG.md`.
+
+### 1.1.0
+
+- Added an opt-in Cache Rules setup action for WordPress full-page edge caching.
+- Added managed Cloudflare Rulesets API integration that updates only plugin-owned rules.
+- Added cache rules preset, hostname, status, and activity logging in wp-admin.
 
 ### 1.0.1
 

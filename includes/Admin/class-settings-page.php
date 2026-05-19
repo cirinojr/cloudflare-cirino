@@ -170,6 +170,25 @@ class Settings_Page {
 						<p class="cf-cirino-empty"><?php esc_html_e( 'No purge activity has run yet.', 'cloudflare-cirino' ); ?></p>
 					<?php endif; ?>
 				</section>
+
+				<section class="cf-cirino-card">
+					<h2><?php esc_html_e( 'Cache Rules Status', 'cloudflare-cirino' ); ?></h2>
+					<?php if ( ! empty( $runtime['last_cache_rules_message'] ) ) : ?>
+						<p><?php echo esc_html( (string) $runtime['last_cache_rules_message'] ); ?></p>
+					<?php else : ?>
+						<p class="cf-cirino-empty"><?php esc_html_e( 'Recommended cache rules have not been applied yet.', 'cloudflare-cirino' ); ?></p>
+					<?php endif; ?>
+					<p>
+						<strong><?php esc_html_e( 'Last applied:', 'cloudflare-cirino' ); ?></strong>
+						<?php echo esc_html( $this->format_timestamp( (int) $runtime['last_cache_rules_at'] ) ); ?>
+					</p>
+					<?php if ( ! empty( $runtime['last_cache_rules_ruleset_id'] ) ) : ?>
+						<p>
+							<strong><?php esc_html_e( 'Ruleset ID:', 'cloudflare-cirino' ); ?></strong>
+							<?php echo esc_html( (string) $runtime['last_cache_rules_ruleset_id'] ); ?>
+						</p>
+					<?php endif; ?>
+				</section>
 			</div>
 
 			<section class="cf-cirino-card cf-cirino-card--form">
@@ -194,7 +213,7 @@ class Settings_Page {
 						<div class="cf-cirino-field" data-cloudflare-cirino-auth-panel="token">
 							<label for="cloudflare-cirino-token"><?php esc_html_e( 'API Token', 'cloudflare-cirino' ); ?></label>
 							<input id="cloudflare-cirino-token" name="cloudflare_cirino_settings[api_token]" type="password" value="" placeholder="<?php echo ! empty( $settings['api_token'] ) ? esc_attr__( 'Saved token will be kept if left blank', 'cloudflare-cirino' ) : ''; ?>" autocomplete="new-password" />
-							<p class="description"><?php esc_html_e( 'Use a token with Zone > Cache Purge permission.', 'cloudflare-cirino' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Use a token with Zone > Cache Purge permission. The optional cache rules tool also needs Cloudflare Cache Rules / Rulesets edit permissions.', 'cloudflare-cirino' ); ?></p>
 						</div>
 
 						<div class="cf-cirino-field">
@@ -203,6 +222,23 @@ class Settings_Page {
 								<option value="targeted" <?php selected( (string) $settings['purge_mode'], 'targeted' ); ?>><?php esc_html_e( 'Targeted URLs (permalink + related pages)', 'cloudflare-cirino' ); ?></option>
 								<option value="everything" <?php selected( (string) $settings['purge_mode'], 'everything' ); ?>><?php esc_html_e( 'Purge Everything', 'cloudflare-cirino' ); ?></option>
 							</select>
+						</div>
+
+						<div class="cf-cirino-field">
+							<label for="cloudflare-cirino-cache-rules-hostname"><?php esc_html_e( 'Cache Rules Hostname', 'cloudflare-cirino' ); ?></label>
+							<input id="cloudflare-cirino-cache-rules-hostname" name="cloudflare_cirino_settings[cache_rules_hostname]" type="text" value="<?php echo esc_attr( (string) $settings['cache_rules_hostname'] ); ?>" placeholder="<?php echo esc_attr( $this->options->get_default_cache_rules_hostname() ); ?>" />
+							<p class="description"><?php esc_html_e( 'Hostname only. Leave blank to use the current site hostname.', 'cloudflare-cirino' ); ?></p>
+						</div>
+
+						<div class="cf-cirino-field">
+							<label for="cloudflare-cirino-cache-rules-preset"><?php esc_html_e( 'Cache Rules Preset', 'cloudflare-cirino' ); ?></label>
+							<select id="cloudflare-cirino-cache-rules-preset" name="cloudflare_cirino_settings[cache_rules_preset]">
+								<option value="safe" <?php selected( (string) $settings['cache_rules_preset'], 'safe' ); ?>><?php esc_html_e( 'Safe: Edge TTL 2 hours', 'cloudflare-cirino' ); ?></option>
+								<option value="recommended" <?php selected( (string) $settings['cache_rules_preset'], 'recommended' ); ?>><?php esc_html_e( 'Recommended: Edge TTL 4 hours', 'cloudflare-cirino' ); ?></option>
+								<option value="aggressive" <?php selected( (string) $settings['cache_rules_preset'], 'aggressive' ); ?>><?php esc_html_e( 'Aggressive: Edge TTL 1 day', 'cloudflare-cirino' ); ?></option>
+							</select>
+							<input type="hidden" name="cloudflare_cirino_settings[cache_rules_edge_ttl]" value="<?php echo esc_attr( (string) $settings['cache_rules_edge_ttl'] ); ?>" />
+							<input type="hidden" name="cloudflare_cirino_settings[cache_rules_enabled]" value="<?php echo esc_attr( (string) $settings['cache_rules_enabled'] ); ?>" />
 						</div>
 					</div>
 
@@ -221,6 +257,23 @@ class Settings_Page {
 					</details>
 
 					<?php submit_button( __( 'Save Settings', 'cloudflare-cirino' ), 'primary cf-cirino-button-primary', 'submit', false ); ?>
+				</form>
+			</section>
+
+			<section class="cf-cirino-card cf-cirino-card--cache-rules">
+				<h2><?php esc_html_e( 'Recommended Cache Rules', 'cloudflare-cirino' ); ?></h2>
+				<p><?php esc_html_e( 'This optional feature configures Cloudflare edge caching for public WordPress pages on the selected hostname.', 'cloudflare-cirino' ); ?></p>
+				<p class="cf-cirino-warning"><?php esc_html_e( 'Opt-in only. This action modifies Cloudflare zone Cache Rules and never runs automatically on activation.', 'cloudflare-cirino' ); ?></p>
+				<ul class="cf-cirino-status-list">
+					<li><?php echo esc_html( sprintf( __( 'Hostname: %s', 'cloudflare-cirino' ), (string) $settings['cache_rules_hostname'] ) ); ?></li>
+					<li><?php echo esc_html( sprintf( __( 'Preset: %s', 'cloudflare-cirino' ), $this->preset_label( (string) $settings['cache_rules_preset'] ) ) ); ?></li>
+					<li><?php echo esc_html( sprintf( __( 'Apply state: %s', 'cloudflare-cirino' ), 'yes' === (string) $settings['cache_rules_enabled'] ? __( 'Applied at least once', 'cloudflare-cirino' ) : __( 'Not applied yet', 'cloudflare-cirino' ) ) ); ?></li>
+				</ul>
+				<p class="description"><?php esc_html_e( 'Save settings first if you change the hostname or preset, then apply the managed cache rules.', 'cloudflare-cirino' ); ?></p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<?php wp_nonce_field( 'cloudflare_cirino_apply_cache_rules' ); ?>
+					<input type="hidden" name="action" value="cloudflare_cirino_apply_cache_rules" />
+					<button type="submit" class="button button-primary cf-cirino-button-primary" data-cloudflare-cirino-confirm="1" data-cloudflare-cirino-confirm-text="<?php echo esc_attr__( 'Apply or update the Cloudflare Cirino cache rules for this zone?', 'cloudflare-cirino' ); ?>"><?php esc_html_e( 'Apply Recommended Cache Rules', 'cloudflare-cirino' ); ?></button>
 				</form>
 			</section>
 
@@ -348,5 +401,25 @@ class Settings_Page {
 		}
 
 		return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp );
+	}
+
+	/**
+	 * Return a translated preset label.
+	 *
+	 * @param string $preset Cache preset key.
+	 * @return string
+	 */
+	private function preset_label( string $preset ): string {
+		switch ( $preset ) {
+			case 'safe':
+				return __( 'Safe', 'cloudflare-cirino' );
+
+			case 'aggressive':
+				return __( 'Aggressive', 'cloudflare-cirino' );
+
+			case 'recommended':
+			default:
+				return __( 'Recommended', 'cloudflare-cirino' );
+		}
 	}
 }

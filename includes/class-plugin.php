@@ -51,11 +51,12 @@ final class Plugin {
 		$options       = new Options();
 		$activity_log  = new Activity_Log();
 		$api_client    = new API_Client( $options );
+		$cache_rules_service = new Cache_Rules_Service( $api_client );
 		$purge_service = new Purge_Service( $options, $api_client, $activity_log );
 
 		$settings      = new Settings( $options );
 		$settings_page = new Settings_Page( $options, $activity_log );
-		$actions       = new Actions( $purge_service, $api_client, $settings_page, $options, $activity_log );
+		$actions       = new Actions( $purge_service, $api_client, $cache_rules_service, $settings_page, $options, $activity_log );
 		$content_hooks = new Content_Hooks( $purge_service );
 
 		$settings->register();
@@ -82,6 +83,7 @@ final class Plugin {
 		require_once CLOUDFLARE_CIRINO_PATH . 'includes/class-options.php';
 		require_once CLOUDFLARE_CIRINO_PATH . 'includes/class-activity-log.php';
 		require_once CLOUDFLARE_CIRINO_PATH . 'includes/class-api-client.php';
+		require_once CLOUDFLARE_CIRINO_PATH . 'includes/class-cache-rules-service.php';
 		require_once CLOUDFLARE_CIRINO_PATH . 'includes/class-purge-service.php';
 		require_once CLOUDFLARE_CIRINO_PATH . 'includes/class-content-hooks.php';
 		require_once CLOUDFLARE_CIRINO_PATH . 'includes/Admin/class-settings.php';

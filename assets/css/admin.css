@@ -58,6 +58,10 @@
 	margin-top: 18px;
 }
 
+.cf-cirino-card--cache-rules {
+	margin-top: 18px;
+}
+
 .cf-cirino-field-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -161,6 +165,23 @@
 .cf-cirino-empty {
 	color: #646970;
 	font-style: italic;
+}
+
+.cf-cirino-warning {
+	margin: 12px 0;
+	padding: 10px 12px;
+	border-left: 4px solid #dba617;
+	background: #fff8e5;
+	color: #674d00;
+}
+
+.cf-cirino-status-list {
+	margin: 12px 0;
+	padding-left: 18px;
+}
+
+.cf-cirino-status-list li {
+	margin-bottom: 4px;
 }
 
 @media (max-width: 782px) {
